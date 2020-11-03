@@ -1,66 +1,44 @@
-const express = require('express')
+const express = require('express');
+const bodyParser = require('body-parser');
+var cors = require('cors');
 
 // use process.env variables to keep private variables,
 require('dotenv').config()
 
-// Express Middleware
-const helmet = require('helmet') // creates headers that protect from attacks (security)
-const bodyParser = require('body-parser') // turns response into usable format
-const cors = require('cors')  // allows/disallows cross-site communication
-const morgan = require('morgan') // logs requests
-
-// db Connection w/ Heroku
-// const db = require('knex')({
-//   client: 'pg',
-//   connection: {
-//     connectionString: process.env.DATABASE_URL,
-//     ssl: true,
-//   }
-// });
-
 // db Connection w/ localhost
-/*var db = require('knex')({
+var db = require('knex')({ // TODO db en global ?
   client: 'pg',
   connection: {
-    host : '127.0.0.1',
-    user : '',
-    password : '',
-    database : 'crud-practice-1'
+    host : 'localhost',
+    user : 'admin',
+    password : 'admin',
+    database : 'compety'
   }
-});*/
-
-// Controllers - aka, the db queries
-const main = require('./controllers/main')
+});
 
 // App
-const app = express()
+app = express();
+app.use(cors({origin: true, credentials: true}));
+app.set('jwtTokenSecret', 'compety-jwt-secret');
 
-// App Middleware
-const whitelist = ['http://localhost:3001']
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1 || !origin) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  }
-}
-app.use(helmet())
-app.use(cors(corsOptions))
-app.use(bodyParser.json())
-app.use(morgan('combined')) // use 'tiny' or 'combined'
+// Controllers - aka, the db queries
+const main = require('./controllers/main');
+const jwtauth = require('./controllers/jwtauth.js');
 
-// App Routes - Auth
-app.get('/', (req, res) => res.send('hello world'))
-/*app.get('/crud', (req, res) => main.getTableData(req, res, db))
-app.post('/crud', (req, res) => main.postTableData(req, res, db))
-app.put('/crud', (req, res) => main.putTableData(req, res, db))
-app.delete('/crud', (req, res) => main.deleteTableData(req, res, db))*/
+app.all('/*', [bodyParser.json()])
+// Appelle de jwtauth pour chaque appelle REST de l'api'
+app.all('/api/*', [jwtauth]);
 
-app.get('/test1', (req, res) => main.test1(req, res))
+// App Routes
+app.get('/', (req, res) => res.send('hello world'));
+app.post('/login', (req, res) => main.login(req, res, db));
+app.get('/api/test', main.test);
+
+// app.get('/api/test1', (req, res) => main.test1(req, res));
+
+const PORT = 3001
 
 // App Server Connection
-app.listen(process.env.PORT || 3000, () => {
-  console.log(`app is running on port ${process.env.PORT || 3000}`)
+app.listen(process.env.PORT || 3001, () => {
+  console.log(`app is running on port ${process.env.PORT || 3001}`)
 })

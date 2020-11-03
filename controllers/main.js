@@ -1,3 +1,6 @@
+const jwt = require('jwt-simple');
+const moment = require('moment');
+
 /*const getTableData = (req, res, db) => {
   db.select('*').from('testtable1')
     .then(items => {
@@ -40,10 +43,36 @@ const deleteTableData = (req, res, db) => {
     .catch(err => res.status(400).json({dbError: 'db error'}))
 }*/
 
-const test1 = (req, res) => {
+function login(req, res, db) {
+  var expires = moment().add(7, 'days').valueOf();
+  
+  // TODO check user
+//       return res.send(401);
+
+  console.log(req.body);
+  
+  const login = req.body.login;
+  const password = req.body.password;
+  console.log("Login " + login + " " + password)
+  
+  var token = jwt.encode({
+    iss: 42,
+    exp: expires
+  }, app.get('jwtTokenSecret'));
+
+  res.json({
+    token : token,
+    expires: expires,
+    user: login
+//     user: user.toJSON()
+  });
+}
+
+const test = (req, res) => {
     res.send('Mihahahaha');
 }
 
 module.exports = {
-  test1
+  test,
+  login
 }
