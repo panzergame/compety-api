@@ -6,11 +6,11 @@ var cors = require('cors');
 require('dotenv').config()
 
 // db Connection w/ localhost
-var db = require('knex')({ // TODO db en global ?
+db = require('knex')({
   client: 'pg',
   connection: {
     host : 'localhost',
-    user : 'admin',
+    user : 'postgres',
     password : 'admin',
     database : 'compety'
   }
@@ -21,24 +21,25 @@ app = express();
 app.use(cors({origin: true, credentials: true}));
 app.set('jwtTokenSecret', 'compety-jwt-secret');
 
-// Controllers - aka, the db queries
-const main = require('./controllers/main');
 const jwtauth = require('./controllers/jwtauth.js');
+const action = require('./controllers/action');
+const auth = require('./controllers/auth.js');
+const resource = require('./controllers/resource');
 
 app.all('/*', [bodyParser.json()])
 // Appelle de jwtauth pour chaque appelle REST de l'api'
-app.all('/api/*', [jwtauth]);
+app.all('/api/action*', [jwtauth.verifyToken]);
 
 // App Routes
 app.get('/', (req, res) => res.send('hello world'));
-app.post('/login', (req, res) => main.login(req, res, db));
-app.get('/api/test', main.test);
+app.post('/api/auth/login', auth.login);
+app.post('/api/auth/register', auth.register);
+app.get('/api/resource/competency', resource.competency)
+app.get('/api/resource/section', resource.section)
 
-// app.get('/api/test1', (req, res) => main.test1(req, res));
-
-const PORT = 3001
+const PORT = 3001;
 
 // App Server Connection
-app.listen(process.env.PORT || 3001, () => {
-  console.log(`app is running on port ${process.env.PORT || 3001}`)
+app.listen(process.env.PORT || PORT, () => {
+  console.log(`app is running on port ${process.env.PORT || PORT}`)
 })
