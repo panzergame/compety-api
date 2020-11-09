@@ -7,10 +7,21 @@ function login(req, res) {
   console.log("Login " + login + " " + password);
 
   db('User').where({login, password}).first().then(item => {
-    var data = jwtauth.token(login, password);
-    data.user = item;
+    if (item) {
+      var data = jwtauth.token(login, password);
+      // Copie des données de l'utilisateur en omettant le mot de passe
+      data.user = {
+        id: item.id,
+        login: item.login,
+        description: item.description,
+        dayofbirth: item.dayofbirth
+      };
 
-    res.json(data);
+      res.json(data);
+    }
+    else {
+      res.end('Login or password incorrect');
+    }
   });
 }
 

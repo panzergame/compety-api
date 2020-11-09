@@ -28,14 +28,17 @@ const resource = require('./controllers/resource');
 
 app.all('/*', [bodyParser.json()])
 // Appelle de jwtauth pour chaque appelle REST de l'api'
-app.all('/api/action*', [jwtauth.verifyToken]);
+app.all('/api/action*', [jwtauth.needToken]);
+app.all('/api/resource*', [jwtauth.optionalToken]);
 
 // App Routes
 app.get('/', (req, res) => res.send('hello world'));
 app.post('/api/auth/login', auth.login);
 app.post('/api/auth/register', auth.register);
-app.get('/api/resource/competency', resource.competency)
-app.get('/api/resource/section', resource.section)
+app.post('/api/action/user/validateCompetency', action.user.validateCompetency);
+
+app.get('/api/resource/competency', resource.competency);
+app.get('/api/resource/section', resource.section);
 
 const PORT = 3001;
 
