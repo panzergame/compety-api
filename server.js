@@ -38,9 +38,11 @@ app.post('/api/auth/login', auth.login);
 // app.post('/api/sync/esco', sync.esco);
 app.post('/api/auth/register', auth.register);
 app.post('/api/action/user/validateCompetency', action.user.validateCompetency);
+app.post('/api/action/user/removeCompetency', action.user.removeCompetency);
 
 app.get('/api/resource/competency', resource.competency);
 app.get('/api/resource/competency/search', resource.searchCompetencies);
+app.get('/api/resource/competency/all', resource.allCompetencies);
 app.get('/api/resource/section', resource.section);
 
 const PORT = 3001;

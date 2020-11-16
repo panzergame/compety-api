@@ -61,8 +61,13 @@ function searchCompetencies(req, res) {
   });
 }
 
+function allCompetencies(req, res) {
+  
+}
+
 module.exports = {
   competency,
   searchCompetencies,
+  allCompetencies,
   section
 }
