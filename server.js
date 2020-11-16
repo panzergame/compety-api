@@ -25,6 +25,7 @@ const jwtauth = require('./controllers/jwtauth.js');
 const action = require('./controllers/action');
 const auth = require('./controllers/auth.js');
 const resource = require('./controllers/resource');
+const sync = require('./controllers/sync');
 
 app.all('/*', [bodyParser.json()])
 // Appelle de jwtauth pour chaque appelle REST de l'api'
@@ -34,10 +35,12 @@ app.all('/api/resource*', [jwtauth.optionalToken]);
 // App Routes
 app.get('/', (req, res) => res.send('hello world'));
 app.post('/api/auth/login', auth.login);
+// app.post('/api/sync/esco', sync.esco);
 app.post('/api/auth/register', auth.register);
 app.post('/api/action/user/validateCompetency', action.user.validateCompetency);
 
 app.get('/api/resource/competency', resource.competency);
+app.get('/api/resource/competency/search', resource.searchCompetencies);
 app.get('/api/resource/section', resource.section);
 
 const PORT = 3001;

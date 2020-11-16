@@ -13,6 +13,8 @@ function login(req, res) {
       data.user = {
         id: item.id,
         login: item.login,
+        firstname: item.firstname,
+        lastname: item.lastname,
         description: item.description,
         dayofbirth: item.dayofbirth
       };
@@ -34,6 +36,8 @@ function register(req, res) {
   db('User').insert({
     login: _login,
     password: password,
+    firstname: req.body.firstname,
+    lastname: req.body.lastname,
     dayofbirth: req.body.dayofbirth
   })
   .then(item => {
