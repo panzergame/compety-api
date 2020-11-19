@@ -6,20 +6,18 @@ function login(req, res) {
   
   console.log("Login " + login + " " + password);
 
-  db('User').where({login, password}).first().then(item => {
-    if (item) {
+  db('User').where({login, password}).first().then(user => {
+    if (user) {
       var data = jwtauth.token(login, password);
       // Copie des données de l'utilisateur en omettant le mot de passe
-      data.user = {
-        id: item.id,
-        login: item.login,
-        firstname: item.firstname,
-        lastname: item.lastname,
-        description: item.description,
-        dayofbirth: item.dayofbirth
-      };
+      delete user.password;
+      data.user = user;
 
-      res.json(data);
+      // Recupération du nombre de notifications en attente
+      db('Notification').where({user: user.id}).count('*').first().then(item => {
+        user.notificationCount = item.count;
+        res.json(data);
+      });
     }
     else {
       res.end('Login or password incorrect');
@@ -38,14 +36,11 @@ function register(req, res) {
     password: password,
     firstname: req.body.firstname,
     lastname: req.body.lastname,
-    dayofbirth: req.body.dayofbirth
+    dayofbirth: req.body.dayofbirth,
+    role: req.body.role
   })
-  .then(item => {
-    login(req, res);
-  })
-  .catch(error => {
-    console.error(error);
-  });
+  .then(item => login(req, res))
+  .catch(error => console.error(error));
 }
 
 module.exports = {
