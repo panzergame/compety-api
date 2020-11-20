@@ -12,11 +12,13 @@ function competencyById(id, userId) {
         return db('User_Validated_Competency').where({user: userId, competency: competency.id}).first()
           .then(link => {
             competency.validated = Boolean(link);
-            return competency
+            return competency;
           }
         );
       }
-      return competency;
+      else {
+        return competency;
+      }
     }
   );
 }
@@ -58,8 +60,7 @@ function group(req, res) {
 
 function searchCompetencies(req, res) {
   const query = req.query.query;
-  const profileId = req.query.profileId;
-  console.log(query, profileId);
+  console.log(query);
 
   db('Competency').where('title', 'ilike', '\%' + query + '\%').then(competencies => {
     (async () => {
@@ -69,7 +70,7 @@ function searchCompetencies(req, res) {
         if (!sectionsToCompetencies[idSection]) {
           let section = await db('Section').where({id : idSection}).first();
           if (!section) {
-            console.log(idSection);
+            console.log("manquant", idSection);
           }
           else {
             section.competencies = [competency];
@@ -84,13 +85,6 @@ function searchCompetencies(req, res) {
     })().then(result => {
       res.json(result);
     })
-  });
-}
-
-function allCompetencies(req, res) {
-  db('Competency').join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
-  .where({user: req.user.id}).then(competencies => {
-    // TODO sections...
   });
 }
 
@@ -116,7 +110,7 @@ function searchUsers(req, res) {
   });
 }
 
-function notifications(req, res) {
+function userNotifications(req, res) {
   const userId = req.user.id;
   
   db('Invite_Notification').where({user: userId})
@@ -127,12 +121,55 @@ function notifications(req, res) {
   });
 }
 
+function userGroups(req, res) {
+  const userId = req.user.id;
+  
+  db('Group')
+  .join('User_In_Group', 'Group.id', 'User_In_Group.group')
+  .where({user: userId, accepted: true})
+  .select('Group.*')
+  .then(groups => {
+    res.json(groups);
+  });
+}
+
+function userCompetencies(req, res) {
+  db('Competency')
+  .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
+  .select('Competency.*')
+  .where({user: req.user.id}).then(competencies => {
+    (async () => {
+      let sectionsToCompetencies = {};
+      for (const competency of competencies) {
+        const idSection = competency.section;
+        if (!sectionsToCompetencies[idSection]) {
+          let section = await db('Section').where({id : idSection}).first();
+          if (!section) {
+            console.log("manquant", idSection);
+          }
+          else {
+            section.competencies = [competency];
+            sectionsToCompetencies[idSection] = section;
+          }
+        }
+        else {
+          sectionsToCompetencies[idSection].competencies.push(competency);
+        }        
+      }
+      return Object.values(sectionsToCompetencies);
+    })().then(result => {
+      res.json(result);
+    })
+  });
+}
+
 module.exports = {
   section,
   competency,
   group,
   searchCompetencies,
-  allCompetencies,
   searchUsers,
-  notifications
+  userNotifications,
+  userGroups,
+  userCompetencies
 }

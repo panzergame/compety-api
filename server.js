@@ -47,11 +47,12 @@ app.post('/api/action/group/acceptInvite', action.group.acceptInvite);
 
 app.get('/api/resource/competency', resource.competency);
 app.get('/api/resource/competency/search', resource.searchCompetencies);
-app.get('/api/resource/competency/all', resource.allCompetencies);
 app.get('/api/resource/section', resource.section);
 app.get('/api/resource/group', resource.group);
 app.get('/api/resource/user/search', resource.searchUsers);
-app.get('/api/resource/user/notification', resource.notifications);
+app.get('/api/resource/user/notification', resource.userNotifications);
+app.get('/api/resource/user/group', resource.userGroups);
+app.get('/api/resource/user/competency', resource.userCompetencies);
 
 
 const PORT = 3001;
