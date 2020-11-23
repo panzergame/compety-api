@@ -9,9 +9,12 @@ function section(req, res) {
 function competencyById(id, userId) {
   return db('Competency').where({id}).first().then(competency => {
       if (competency && userId) {
-        return db('User_Validated_Competency').where({user: userId, competency: competency.id}).first()
+        return db('User_Validated_Competency').where({user: userId, competency: competency.id})
+        .select(['verified'])
+        .first()
           .then(link => {
             competency.validated = Boolean(link);
+            competency.verified = link ? link.verified : null;
             return competency;
           }
         );
@@ -21,6 +24,24 @@ function competencyById(id, userId) {
       }
     }
   );
+}
+
+function competencyValidatedFile(req, res) {
+  return db('User_Validated_Competency').where({user: req.user.id, competency: req.query.competencyId})
+    .select(['file']).first()
+    .then(link => {
+      // Convert to file and res.download()
+      // filestream.pipe(res);
+        res.json(link);
+    });
+}
+
+function competencyValidatedPhoto(req, res) {
+  return db('User_Validated_Competency').where({user: req.user.id, competency: req.query.competencyId})
+    .select(['photo']).first()
+    .then(link => {
+        res.json(link);
+    });
 }
 
 function competency(req, res) {
@@ -60,7 +81,6 @@ function group(req, res) {
 
 function searchCompetencies(req, res) {
   const query = req.query.query;
-  console.log(query);
 
   db('Competency').where('title', 'ilike', '\%' + query + '\%').then(competencies => {
     (async () => {
@@ -166,6 +186,8 @@ function userCompetencies(req, res) {
 module.exports = {
   section,
   competency,
+  competencyValidatedFile,
+  competencyValidatedPhoto,
   group,
   searchCompetencies,
   searchUsers,

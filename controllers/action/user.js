@@ -1,15 +1,47 @@
+function streamToBase64(readable)
+{
+  return new Promise((resolve, reject) => {
+    let data = '';
+    readable.on('data', function (chunk) {
+      data += chunk.toString('base64');
+    });
+    readable.on('end', function () {
+      resolve(data);
+    });
+    readable.on('error', function (err) {
+      reject(err);
+    });
+  });
+}
+
+
 function validateCompetency(req, res) {
-  const competencyId = req.body.competencyId;
+  const competencyId = req.query.competencyId;
   const userId = req.user.id;
-  db('User_Validated_Competency').insert({competency: competencyId, user: userId})
-    .onConflict(['user', 'competency']).ignore()
-    .then(
-      db('Competency').where({id : competencyId}).first()
-      .then(competency => {
-        competency.validated = true;
-        res.json(competency);
-      })
-    );
+  const file = req.body.file;
+  const photo = req.body.photo;
+
+  // var buffer = new Buffer(base64string, 'base64');
+
+  (async () => {
+    const file64 = file ? await streamToBase64(file) : null;
+    const photo64 = photo ? await streamToBase64(photo) : null;
+
+    return [file64, photo64];
+  })().then(files64 => {
+    const [file64, photo64] = files64;
+  
+    db('User_Validated_Competency').insert({competency: competencyId, user: userId, file: file64, photo: photo64, verified: false})
+      .onConflict(['user', 'competency']).merge()
+      .then(
+        db('Competency').where({id : competencyId}).first()
+        .then(competency => {
+          competency.validated = true;
+          competency.verified = false;
+          res.json(competency);
+        })
+      );
+  });
 }
 
 function removeCompetency(req, res) {
