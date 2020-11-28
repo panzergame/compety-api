@@ -18,8 +18,10 @@ function streamToBase64(readable)
 function validateCompetency(req, res) {
   const competencyId = req.query.competencyId;
   const userId = req.user.id;
+  const fileName = req.query.fileName;
   const file = req.body.file;
   const photo = req.body.photo;
+  const comment = req.query.comment;
 
   // var buffer = new Buffer(base64string, 'base64');
 
@@ -31,16 +33,15 @@ function validateCompetency(req, res) {
   })().then(files64 => {
     const [file64, photo64] = files64;
   
-    db('User_Validated_Competency').insert({competency: competencyId, user: userId, file: file64, photo: photo64, verified: false})
+    db('User_Validated_Competency').insert({competency: competencyId, user: userId, fileName, file: file64, photo: photo64, comment})
       .onConflict(['user', 'competency']).merge()
-      .then(
+      .then(validation => {
         db('Competency').where({id : competencyId}).first()
         .then(competency => {
-          competency.validated = true;
-          competency.verified = false;
+          competency.validated = {validation: validation.id};
           res.json(competency);
-        })
-      );
+        });
+      });
   });
 }
 
@@ -51,7 +52,7 @@ function removeCompetency(req, res) {
     .then(
       db('Competency').where({id : competencyId}).first()
       .then(competency => {
-        competency.validated = false;
+        competency.validated = {};
         res.json(competency);
       })
     );

@@ -69,11 +69,14 @@ app.post('/api/action/group/create', action.group.create);
 app.post('/api/action/group/invite/accept', action.group.acceptInvite);
 app.post('/api/action/group/invite/create', action.group.invite);
 
+app.get('/api/resource/competency/validation/file', resource.competencyValidationFile);
+app.get('/api/resource/competency/validation/photo', resource.competencyValidationPhoto);
+app.get('/api/resource/competency/validation', resource.competencyValidation);
 app.get('/api/resource/competency', resource.competency);
-app.get('/api/resource/competency/validated/file', resource.competencyValidatedFile);
-app.get('/api/resource/competency/validated/photo', resource.competencyValidatedPhoto);
 app.get('/api/resource/competency/search', resource.searchCompetencies);
 app.get('/api/resource/section', resource.section);
+app.get('/api/resource/user', resource.user);
+app.get('/api/resource/group/competency/verify', resource.groupCompetenciesToVerify);
 app.get('/api/resource/group', resource.group);
 app.get('/api/resource/user/search', resource.searchUsers);
 app.get('/api/resource/user/notification', resource.userNotifications);

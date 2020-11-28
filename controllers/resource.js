@@ -1,3 +1,14 @@
+function user(req, res) {
+  const id = req.query.id;
+  
+  db('User').where({id}).first().then(user => {
+    if (user) {
+      delete user.password;
+    }
+    res.json(user);
+  });
+}
+
 function section(req, res) {
   const id = req.query.id;
   db('Section').where({id}).first().then(item => {
@@ -9,15 +20,17 @@ function section(req, res) {
 function competencyById(id, userId) {
   return db('Competency').where({id}).first().then(competency => {
       if (competency && userId) {
-        return db('User_Validated_Competency').where({user: userId, competency: competency.id})
-        .select(['verified'])
-        .first()
+        return db('User_Validated_Competency')
+          .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
+          .where({'User_Validated_Competency.user': userId, competency: competency.id})
+          .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation'])
+          .first()
           .then(link => {
-            competency.validated = Boolean(link);
-            competency.verified = link ? link.verified : null;
+            if (link) {
+              competency.validated = link;
+            }
             return competency;
-          }
-        );
+          });
       }
       else {
         return competency;
@@ -26,8 +39,41 @@ function competencyById(id, userId) {
   );
 }
 
-function competencyValidatedFile(req, res) {
-  return db('User_Validated_Competency').where({user: req.user.id, competency: req.query.competencyId})
+async function comptenciesInSections(competencies) {
+  let sectionsToCompetencies = {};
+  for (const competency of competencies) {
+    const idSection = competency.section;
+    if (!sectionsToCompetencies[idSection]) {
+      let section = await db('Section').where({id : idSection}).first();
+      if (!section) {
+        console.log("manquant", idSection);
+      }
+      else {
+        section.competencies = [competency];
+        sectionsToCompetencies[idSection] = section;
+      }
+    }
+    else {
+      sectionsToCompetencies[idSection].competencies.push(competency);
+    }        
+  }
+  return Object.values(sectionsToCompetencies);
+}
+
+function competencyValidation(req, res) {
+  return db('User_Validated_Competency')
+    .join('Competency', 'Competency.id', 'User_Validated_Competency.competency')
+    .where({id: req.query.validationId})
+    .select(['id', 'user', 'competency', 'fileName', 'comment']).first()
+    .then(link => {
+      // Convert to file and res.download()
+      // filestream.pipe(res);
+        res.json(link);
+    });
+}
+
+function competencyValidationFile(req, res) {
+  return db('User_Validated_Competency').where({id: req.query.validationId})
     .select(['file']).first()
     .then(link => {
       // Convert to file and res.download()
@@ -36,8 +82,8 @@ function competencyValidatedFile(req, res) {
     });
 }
 
-function competencyValidatedPhoto(req, res) {
-  return db('User_Validated_Competency').where({user: req.user.id, competency: req.query.competencyId})
+function competencyValidationPhoto(req, res) {
+  return db('User_Validated_Competency').where({id: req.query.validationId})
     .select(['photo']).first()
     .then(link => {
         res.json(link);
@@ -45,7 +91,7 @@ function competencyValidatedPhoto(req, res) {
 }
 
 function competency(req, res) {
-  const userId = req.user ? req.user.id : null;
+  const userId = req.query.userId ? req.query.userId : (req.user ? req.user.id : null);
   competencyById(req.query.id, userId).then(competency => res.json(competency));
 }
 
@@ -81,30 +127,28 @@ function group(req, res) {
 
 function searchCompetencies(req, res) {
   const query = req.query.query;
+  const user = req.user;
 
   db('Competency').where('title', 'ilike', '\%' + query + '\%').then(competencies => {
-    (async () => {
-      let sectionsToCompetencies = {};
-      for (const competency of competencies) {
-        const idSection = competency.section;
-        if (!sectionsToCompetencies[idSection]) {
-          let section = await db('Section').where({id : idSection}).first();
-          if (!section) {
-            console.log("manquant", idSection);
-          }
-          else {
-            section.competencies = [competency];
-            sectionsToCompetencies[idSection] = section;
-          }
-        }
-        else {
-          sectionsToCompetencies[idSection].competencies.push(competency);
-        }        
-      }
-      return Object.values(sectionsToCompetencies);
-    })().then(result => {
-      res.json(result);
-    })
+    let promises = []
+    // Recupération de la validation
+    if (user) {
+      promises = competencies.map(competency => {
+        return db('User_Validated_Competency').where({'User_Validated_Competency.user': user.id, competency: competency.id})
+          .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
+          .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation'])
+          .first().then(link => {
+            if (link) {
+              console.log("valid");
+              competency.validated = link;
+            }
+            return competency;
+          });
+      });
+    }
+    Promise.all(promises).then(competencies => {
+      comptenciesInSections(competencies).then(sections => res.json(sections));
+    });
   });
 }
 
@@ -156,42 +200,45 @@ function userGroups(req, res) {
 function userCompetencies(req, res) {
   db('Competency')
   .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
-  .select('Competency.*')
+  .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
+  .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation'])
   .where({user: req.user.id}).then(competencies => {
-    (async () => {
-      let sectionsToCompetencies = {};
-      for (const competency of competencies) {
-        const idSection = competency.section;
-        if (!sectionsToCompetencies[idSection]) {
-          let section = await db('Section').where({id : idSection}).first();
-          if (!section) {
-            console.log("manquant", idSection);
-          }
-          else {
-            section.competencies = [competency];
-            sectionsToCompetencies[idSection] = section;
-          }
-        }
-        else {
-          sectionsToCompetencies[idSection].competencies.push(competency);
-        }        
-      }
-      return Object.values(sectionsToCompetencies);
-    })().then(result => {
-      res.json(result);
-    })
+    competencies.map(competency => {
+      competency.validated = {verification: competency.verification, validation: competency.validation};
+      delete competency.verification;
+      delete competency.validation;
+    });
+
+    comptenciesInSections(competencies).then(sections => res.json(sections));
   });
 }
 
+function groupCompetenciesToVerify(req, res) {
+  db('Competency')
+    .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
+    .join('User_In_Group', 'User_Validated_Competency.user', 'User_In_Group.user')
+    .join('Group', 'Group.id', 'User_In_Group.group')
+    .join('User', 'User.id', 'User_In_Group.user')
+    .where({'Group.id': req.query.groupId})
+    .whereNot({'User_In_Group.user': req.user.id})
+    .select('Competency.id as competencyId', 'Competency.title', 'User_Validated_Competency.id', 'User.id as userId', 'User.firstname', 'User.lastname', 'User.login')
+    .then(competencies => {
+      comptenciesInSections(competencies).then(sections => res.json(sections));
+    });
+}
+
 module.exports = {
+  user,
   section,
   competency,
-  competencyValidatedFile,
-  competencyValidatedPhoto,
+  competencyValidation,
+  competencyValidationFile,
+  competencyValidationPhoto,
   group,
   searchCompetencies,
   searchUsers,
   userNotifications,
   userGroups,
-  userCompetencies
+  userCompetencies,
+  groupCompetenciesToVerify
 }
