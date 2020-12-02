@@ -5,12 +5,13 @@ const os = require("os");
 const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
+const knex = require('knex');
 
 // use process.env variables to keep private variables,
 require('dotenv').config()
 
 // db Connection w/ localhost
-db = require('knex')({
+db = knex({
   client: 'pg',
   connection: {
     host : 'localhost',
@@ -92,5 +93,5 @@ https.createServer({
   cert: fs.readFileSync("./compety.com.pem")
 }, app)
 .listen(process.env.PORT || PORT, () => {
-  console.log(`app is running on port ${process.env.PORT || PORT}`)
+  console.log(`app is running on port ${process.env.PORT || PORT}`);
 })

@@ -1,3 +1,6 @@
+const stream = require('stream');
+const fs = require('fs');
+
 function user(req, res) {
   const id = req.query.id;
   
@@ -63,9 +66,12 @@ async function comptenciesInSections(competencies) {
 function competencyValidation(req, res) {
   return db('User_Validated_Competency')
     .join('Competency', 'Competency.id', 'User_Validated_Competency.competency')
-    .where({id: req.query.validationId})
-    .select(['id', 'user', 'competency', 'fileName', 'comment']).first()
-    .then(link => {
+    .join('User', 'User.id', 'User_Validated_Competency.user')
+    .where({'User_Validated_Competency.id': req.query.validationId})
+    .select(['User_Validated_Competency.id', 'user', 'competency', 'fileName', 'comment',
+            'User.firstname', 'User.lastname', 'User.login'])
+    .select(db.raw('"file" is not null hasfile, "photo" is not null hasphoto'))
+    .first().then(link => {
       // Convert to file and res.download()
       // filestream.pipe(res);
         res.json(link);
@@ -74,19 +80,39 @@ function competencyValidation(req, res) {
 
 function competencyValidationFile(req, res) {
   return db('User_Validated_Competency').where({id: req.query.validationId})
-    .select(['file']).first()
+    .select('fileName', 'file').first()
     .then(link => {
-      // Convert to file and res.download()
-      // filestream.pipe(res);
-        res.json(link);
+      if (link.file) {
+        const buffer = Buffer.from(link.file, 'base64');
+        const readStream = stream.PassThrough();
+        readStream.end(buffer);
+
+        res.set('Content-disposition', 'attachment; filename=' + link.fileName);
+
+        readStream.pipe(res);
+      }
+      else {
+        res.end();
+      }
     });
 }
 
 function competencyValidationPhoto(req, res) {
   return db('User_Validated_Competency').where({id: req.query.validationId})
-    .select(['photo']).first()
+    .select('photo').first()
     .then(link => {
-        res.json(link);
+      if (link.photo) {
+        const buffer = Buffer.from(link.photo, 'base64');
+
+        res.set('Content-type', 'image/png');
+
+        const readStream = stream.PassThrough();
+        readStream.end(buffer);
+        readStream.pipe(res);
+      }
+      else {
+        res.end();
+      }
     });
 }
 
@@ -201,7 +227,7 @@ function userCompetencies(req, res) {
   db('Competency')
   .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
   .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
-  .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation'])
+  .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation', 'Competency.*'])
   .where({user: req.user.id}).then(competencies => {
     competencies.map(competency => {
       competency.validated = {verification: competency.verification, validation: competency.validation};
@@ -221,7 +247,7 @@ function groupCompetenciesToVerify(req, res) {
     .join('User', 'User.id', 'User_In_Group.user')
     .where({'Group.id': req.query.groupId})
     .whereNot({'User_In_Group.user': req.user.id})
-    .select('Competency.id as competencyId', 'Competency.title', 'User_Validated_Competency.id', 'User.id as userId', 'User.firstname', 'User.lastname', 'User.login')
+    .select('Competency.*', 'User_Validated_Competency.id as validation', 'User.id as userId', 'User.firstname', 'User.lastname', 'User.login')
     .then(competencies => {
       comptenciesInSections(competencies).then(sections => res.json(sections));
     });

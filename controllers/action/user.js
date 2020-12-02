@@ -1,12 +1,15 @@
+const fs = require('fs');
+
 function streamToBase64(readable)
 {
   return new Promise((resolve, reject) => {
-    let data = '';
+    var chunks = [];
     readable.on('data', function (chunk) {
-      data += chunk.toString('base64');
+      chunks.push(chunk);
     });
     readable.on('end', function () {
-      resolve(data);
+      const buffer = Buffer.concat(chunks);
+      resolve(buffer.toString('base64'));
     });
     readable.on('error', function (err) {
       reject(err);
@@ -22,9 +25,7 @@ function validateCompetency(req, res) {
   const file = req.body.file;
   const photo = req.body.photo;
   const comment = req.query.comment;
-
-  // var buffer = new Buffer(base64string, 'base64');
-
+  
   (async () => {
     const file64 = file ? await streamToBase64(file) : null;
     const photo64 = photo ? await streamToBase64(photo) : null;
