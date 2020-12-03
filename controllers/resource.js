@@ -163,10 +163,9 @@ function searchCompetencies(req, res) {
   const user = req.user;
 
   db('Competency').where('title', 'ilike', '\%' + query + '\%').then(competencies => {
-    let promises = []
     // Recupération de la validation
     if (user) {
-      promises = competencies.map(competency => {
+      const promises = competencies.map(competency => {
         return db('User_Validated_Competency').where({'User_Validated_Competency.user': user.id, competency: competency.id})
           .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
           .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation'])
@@ -178,10 +177,13 @@ function searchCompetencies(req, res) {
             return competency;
           });
       });
+      Promise.all(promises).then(competencies => {
+        comptenciesInSections(competencies).then(sections => res.json(sections));
+      });
     }
-    Promise.all(promises).then(competencies => {
-      comptenciesInSections(competencies).then(sections => res.json(sections));
-    });
+    else {
+        comptenciesInSections(competencies).then(sections => res.json(sections));      
+    }
   });
 }
 
