@@ -36,13 +36,7 @@ function validateCompetency(req, res) {
   
     db('User_Validated_Competency').insert({competency: competencyId, user: userId, fileName, file: file64, photo: photo64, comment})
       .onConflict(['user', 'competency']).merge()
-      .then(validation => {
-        db('Competency').where({id : competencyId}).first()
-        .then(competency => {
-          competency.validated = {validation: validation.id};
-          res.json(competency);
-        });
-      });
+      .then(res.end());
   });
 }
 
@@ -50,13 +44,7 @@ function removeCompetency(req, res) {
   const competencyId = req.body.competencyId;
   const userId = req.user.id;
   db('User_Validated_Competency').where({competency: competencyId, user: userId}).del()
-    .then(
-      db('Competency').where({id : competencyId}).first()
-      .then(competency => {
-        competency.validated = {};
-        res.json(competency);
-      })
-    );
+    .then(res.end());
 }
 
 function readNotification(req, res) {
@@ -72,15 +60,15 @@ function readNotification(req, res) {
 function acceptValidation(req, res) {
   const validationId = req.body.validationId;
   const verificatorUserId = req.user.id;
-  db('User_Verified_Competency').where({validation: validationId, user: verificatorUserId})
-    .then(res.end());
+  db('User_Verified_Competency').insert({validation: validationId, validator: verificatorUserId})
+    .onConflict(['validation', 'validator']).ignore().then(res.end());
 }
 
 function commentValidation(req, res) {
   const validationId = req.body.validationId;
   const verificatorUserId = req.user.id;
   const comment = req.body.comment;
-  db('User_Commented_Validation').where({validation: validationId, user: verificatorUserId, comment})
+  db('User_Commented_Validation').insert({validation: validationId, user: verificatorUserId, comment, date: new Date().toISOString()})
     .then(res.end());
 }
 

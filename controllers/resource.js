@@ -64,16 +64,25 @@ async function comptenciesInSections(competencies) {
 }
 
 function competencyValidation(req, res) {
+  const validationId = req.query.validationId;
+
   return db('User_Validated_Competency')
     .join('Competency', 'Competency.id', 'User_Validated_Competency.competency')
     .join('User', 'User.id', 'User_Validated_Competency.user')
-    .where({'User_Validated_Competency.id': req.query.validationId})
+    .where({'User_Validated_Competency.id': validationId})
     .select(['User_Validated_Competency.id', 'user', 'competency', 'fileName', 'comment',
-            'User.firstname', 'User.lastname', 'User.login'])
+            'User.firstname', 'User.lastname', 'User.login', 'Competency.title'])
     .select(db.raw('"file" is not null hasfile, "photo" is not null hasphoto'))
-    .first().then(link => {
-        res.json(link);
-    });
+    .first().then(validation =>      
+        db('User_Commented_Validation')
+        .join('User', 'User.id', 'User_Commented_Validation.user')
+        .where({validation: validationId})
+          .select('User_Commented_Validation.id', 'user', 'comment', 'date', 'User.firstname', 'User.lastname')
+          .then(comments => {
+            validation.comments = comments;
+            res.json(validation);
+          })
+    );
 }
 
 function competencyValidationFile(req, res) {
