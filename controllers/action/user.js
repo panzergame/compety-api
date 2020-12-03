@@ -69,8 +69,25 @@ function readNotification(req, res) {
   }
 }
 
+function acceptValidation(req, res) {
+  const validationId = req.body.validationId;
+  const verificatorUserId = req.user.id;
+  db('User_Verified_Competency').where({validation: validationId, user: verificatorUserId})
+    .then(res.end());
+}
+
+function commentValidation(req, res) {
+  const validationId = req.body.validationId;
+  const verificatorUserId = req.user.id;
+  const comment = req.body.comment;
+  db('User_Commented_Validation').where({validation: validationId, user: verificatorUserId, comment})
+    .then(res.end());
+}
+
 module.exports = {
   validateCompetency,
   removeCompetency,
-  readNotification
+  readNotification,
+  acceptValidation,
+  commentValidation
 } 

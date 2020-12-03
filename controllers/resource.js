@@ -72,8 +72,6 @@ function competencyValidation(req, res) {
             'User.firstname', 'User.lastname', 'User.login'])
     .select(db.raw('"file" is not null hasfile, "photo" is not null hasphoto'))
     .first().then(link => {
-      // Convert to file and res.download()
-      // filestream.pipe(res);
         res.json(link);
     });
 }

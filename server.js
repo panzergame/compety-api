@@ -64,6 +64,8 @@ app.post('/api/auth/login', auth.login);
 app.post('/api/auth/register', auth.register);
 app.post('/api/action/user/competency/validate', action.user.validateCompetency);
 app.post('/api/action/user/competency/remove', action.user.removeCompetency);
+app.post('/api/action/user/competency/validation/accept', action.user.acceptValidation);
+app.post('/api/action/user/competency/validation/comment', action.user.commentValidation);
 app.post('/api/action/user/notification/read', action.user.readNotification);
 app.post('/api/action/group/create', action.group.create);
 // app.post('/api/action/group/delete', action.group.delete);
