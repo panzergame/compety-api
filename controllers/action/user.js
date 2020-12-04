@@ -50,16 +50,6 @@ function removeCompetency(req, res) {
     .then(res.end());
 }
 
-function readNotification(req, res) {
-  const id = req.body.notificationId;
-  const type = req.body.notification;
-
-  if (type === 'invite') {
-    db('Invite_Notification').where({id, user: req.user.id}).update({read: true}).returning('*')
-    .then(notification => res.json(notification));
-  }
-}
-
 function acceptValidation(req, res) {
   const validationId = req.body.validationId;
   const verificatorUserId = req.user.id;
@@ -78,7 +68,6 @@ function commentValidation(req, res) {
 module.exports = {
   validateCompetency,
   removeCompetency,
-  readNotification,
   acceptValidation,
   commentValidation
 } 

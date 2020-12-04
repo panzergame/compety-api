@@ -14,7 +14,7 @@ function user(req, res) {
 
 function section(req, res) {
   const id = req.query.id;
-  db('Section').where({id}).first().then(item => {
+  sectionById(id).then(item => {
       res.json(item);
     }
   );
@@ -53,12 +53,24 @@ function competencyById(id, userId) {
   );
 }
 
+function sectionById(id) {
+  return db('Section').
+      join('Competency', 'Section.id', 'Competency.section')
+      .leftJoin('User_Validated_Competency', 'User_Validated_Competency.competency', 'Competency.id')
+      .leftJoin('User_Verified_Competency', 'User_Verified_Competency.validation', 'User_Validated_Competency.id')
+      .groupBy('Section.id')
+      .select('Section.*',
+              db.raw('count("Competency"."id") as total'),
+              db.raw('count("User_Verified_Competency"."id") as verified'))
+      .where({'Section.id' : id}).first();
+}
+
 async function comptenciesInSections(competencies) {
   let sectionsToCompetencies = {};
   for (const competency of competencies) {
     const idSection = competency.section;
     if (!sectionsToCompetencies[idSection]) {
-      let section = await db('Section').where({id : idSection}).first();
+      let section = await sectionById(idSection);
       if (!section) {
         console.log("manquant", idSection);
       }
@@ -80,9 +92,13 @@ function competencyValidation(req, res) {
   return db('User_Validated_Competency')
     .join('Competency', 'Competency.id', 'User_Validated_Competency.competency')
     .join('User', 'User.id', 'User_Validated_Competency.user')
+    .leftJoin('User_Verified_Competency', 'User_Verified_Competency.validation', 'User_Validated_Competency.id')
+    .leftJoin('User as Verificator', 'Verificator.id', 'User_Verified_Competency.validator')
     .where({'User_Validated_Competency.id': validationId})
     .select(['User_Validated_Competency.id', 'user', 'competency', 'fileName', 'comment',
-            'User.firstname', 'User.lastname', 'User.login', 'Competency.title'])
+            'User.firstname', 'User.lastname', 'User.login', 'Competency.title',
+            'Verificator.firstname as verificator_firstname', 'Verificator.lastname as verificator_lastname'
+            ])
     .select(db.raw('"file" is not null hasfile, "photo" is not null hasphoto'))
     .first().then(validation =>      
         db('User_Commented_Validation')
@@ -254,7 +270,6 @@ function userCompetencies(req, res) {
   
   
   latestValidationJoin(query).then(competencies => {
-    console.log(competencies);
     competencies.map(competency => {
       competency.validated = {verification: competency.verification, validation: competency.validation};
       delete competency.verification;

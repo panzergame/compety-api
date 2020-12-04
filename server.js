@@ -5,6 +5,7 @@ const os = require("os");
 const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
+const webpush = require('web-push');
 const knex = require('knex');
 
 // use process.env variables to keep private variables,
@@ -27,6 +28,8 @@ app.use(cors());
 app.set('jwtTokenSecret', 'compety-jwt-secret');
 
 app.use(bodyParser.json());
+
+webpush.setVapidDetails(process.env.WEB_PUSH_CONTACT, process.env.PUBLIC_VAPID_KEY, process.env.PRIVATE_VAPID_KEY);
 
 /**
  * Options are the same as multiparty takes.
@@ -66,11 +69,13 @@ app.post('/api/action/user/competency/validate', action.user.validateCompetency)
 app.post('/api/action/user/competency/remove', action.user.removeCompetency);
 app.post('/api/action/user/competency/validation/accept', action.user.acceptValidation);
 app.post('/api/action/user/competency/validation/comment', action.user.commentValidation);
-app.post('/api/action/user/notification/read', action.user.readNotification);
 app.post('/api/action/group/create', action.group.create);
 // app.post('/api/action/group/delete', action.group.delete);
 app.post('/api/action/group/invite/accept', action.group.acceptInvite);
 app.post('/api/action/group/invite/create', action.group.invite);
+
+app.post('/api/action/notification/read', action.notification.read);
+app.post('/api/action/notification/subscribe', action.notification.subscribe);
 
 app.get('/api/resource/competency/validation/file', resource.competencyValidationFile);
 app.get('/api/resource/competency/validation/photo', resource.competencyValidationPhoto);
