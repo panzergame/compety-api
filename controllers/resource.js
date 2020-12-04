@@ -20,20 +20,31 @@ function section(req, res) {
   );
 }
 
+function latestValidationJoin(query) {
+  const latest = db('User_Validated_Competency')
+    .select(['competency', db.raw('max(date) date')])
+    .groupBy('competency').as('Latest_Validation');
+
+  return query.join(latest, function() { 
+        this.on('User_Validated_Competency.competency', '=', 'Latest_Validation.competency')
+        .andOn('User_Validated_Competency.date', '=', 'Latest_Validation.date')
+  });
+}
+
 function competencyById(id, userId) {
   return db('Competency').where({id}).first().then(competency => {
       if (competency && userId) {
-        return db('User_Validated_Competency')
+        const query = db('User_Validated_Competency')
           .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
-          .where({'User_Validated_Competency.user': userId, competency: competency.id})
-          .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation'])
-          .first()
-          .then(link => {
+          .where({'User_Validated_Competency.user': userId, 'User_Validated_Competency.competency': competency.id})
+          .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation']);
+          
+        return latestValidationJoin(query).first().then(link => {
             if (link) {
               competency.validated = link;
             }
             return competency;
-          });
+        });
       }
       else {
         return competency;
@@ -166,10 +177,12 @@ function searchCompetencies(req, res) {
     // Recupération de la validation
     if (user) {
       const promises = competencies.map(competency => {
-        return db('User_Validated_Competency').where({'User_Validated_Competency.user': user.id, competency: competency.id})
+        const query = db('User_Validated_Competency')
+          .where({'User_Validated_Competency.user': user.id, 'User_Validated_Competency.competency': competency.id})
           .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
-          .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation'])
-          .first().then(link => {
+          .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation', 'User_Validated_Competency.date as date']);
+
+          return latestValidationJoin(query).first().then(link => {
             if (link) {
               console.log("valid");
               competency.validated = link;
@@ -233,11 +246,15 @@ function userGroups(req, res) {
 }
 
 function userCompetencies(req, res) {
-  db('Competency')
+  let query = db('Competency')
   .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
   .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
-  .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation', 'Competency.*'])
-  .where({user: req.user.id}).then(competencies => {
+  .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation', 'User_Validated_Competency.date as date', 'Competency.*'])
+  .where({user: req.user.id});
+  
+  
+  latestValidationJoin(query).then(competencies => {
+    console.log(competencies);
     competencies.map(competency => {
       competency.validated = {verification: competency.verification, validation: competency.validation};
       delete competency.verification;
@@ -249,17 +266,20 @@ function userCompetencies(req, res) {
 }
 
 function groupCompetenciesToVerify(req, res) {
-  db('Competency')
+  const query = db('Competency')
     .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
+    .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
     .join('User_In_Group', 'User_Validated_Competency.user', 'User_In_Group.user')
     .join('Group', 'Group.id', 'User_In_Group.group')
     .join('User', 'User.id', 'User_In_Group.user')
     .where({'Group.id': req.query.groupId})
     .whereNot({'User_In_Group.user': req.user.id})
-    .select('Competency.*', 'User_Validated_Competency.id as validation', 'User.id as userId', 'User.firstname', 'User.lastname', 'User.login')
-    .then(competencies => {
-      comptenciesInSections(competencies).then(sections => res.json(sections));
-    });
+    .whereNull('User_Verified_Competency.id')
+    .select('Competency.*', 'User_Validated_Competency.id as validation', 'User_Validated_Competency.date as date', 'User.id as userId', 'User.firstname', 'User.lastname', 'User.login');
+
+  latestValidationJoin(query).then(competencies => {
+    comptenciesInSections(competencies).then(sections => res.json(sections));
+  });
 }
 
 module.exports = {

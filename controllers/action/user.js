@@ -34,9 +34,12 @@ function validateCompetency(req, res) {
   })().then(files64 => {
     const [file64, photo64] = files64;
   
-    db('User_Validated_Competency').insert({competency: competencyId, user: userId, fileName, file: file64, photo: photo64, comment})
-      .onConflict(['user', 'competency']).merge()
-      .then(res.end());
+    db('User_Validated_Competency').where({competency: competencyId, user: userId}).select('id').orderBy('date', 'desc')
+      .first().then(prev => {
+      db('User_Validated_Competency').insert({competency: competencyId, user: userId, fileName, file: file64, photo: photo64, comment, prev: prev ? prev.id : null, date: new Date().toISOString()})
+        .then(res.end())
+        
+      });
   });
 }
 
