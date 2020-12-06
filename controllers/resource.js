@@ -216,8 +216,15 @@ function group(req, res) {
 function searchCompetencies(req, res) {
   const query = req.query.query;
   const user = req.user;
+  const filterId = req.query.filterId;
 
-  db('Competency').where('title', 'ilike', '\%' + query + '\%').then(competencies => {
+  var dbquery = db('Competency').where('title', 'ilike', '\%' + query + '\%').select('Competency.*');
+
+  if (filterId) {
+    dbquery = dbquery.join(latestValidation(filterId), 'Latest_Validation.competency', 'Competency.id');
+  }
+  
+  dbquery.then(competencies => {
     // Recupération de la validation
     if (user) {
       const promises = competencies.map(competency => {
@@ -228,7 +235,6 @@ function searchCompetencies(req, res) {
 
           return latestValidationJoin(query).first().then(link => {
             if (link) {
-              console.log("valid");
               competency.validated = link;
             }
             return competency;
@@ -248,7 +254,7 @@ function searchUsers(req, res) {
   const query = req.query.query;
   const role = req.query.role;
 
-  console.log(query, role);
+//   console.log(query, role);
   
   let promise = db('User')
     .where('firstname', 'ilike', '\%' + query + '\%')
@@ -294,7 +300,7 @@ function userCompetencies(req, res) {
   .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
   .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
   .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation', 'User_Validated_Competency.date as date', 'Competency.*'])
-  .where({user: req.user.id});
+  .where({'User_Validated_Competency.user': req.user.id});
   
   
   latestValidationJoin(query).then(competencies => {

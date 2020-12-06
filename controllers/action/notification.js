@@ -1,8 +1,8 @@
 var userSubscriptions = {};
 
 function createNotification(user, type, params) {
-    return db(type).insert(Object.update({user, date: new Date().toISOString(), read: false}, params)).then(
-      webpush.sendNotification(userSubscriptions[user], 'Hello')
+    return db(type).insert(Object.assign({user, date: new Date().toISOString(), read: false}, params)).then(
+//       webpush.sendNotification(userSubscriptions[user], 'Hello')
     );
 }
 

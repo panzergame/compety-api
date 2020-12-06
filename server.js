@@ -92,11 +92,9 @@ app.get('/api/resource/user/competency', resource.userCompetencies);
 const PORT = 3001;
 
 // App Server Connection
-/*https.createServer({
+https.createServer({
   key: fs.readFileSync("./compety.com-key.pem"),
   cert: fs.readFileSync("./compety.com.pem")
-}, app)*/
-
-app.listen(process.env.PORT || PORT, () => {
+}, app).listen(process.env.PORT || PORT, () => {
   console.log(`app is running on port ${process.env.PORT || PORT}`);
 })
