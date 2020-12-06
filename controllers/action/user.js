@@ -37,7 +37,7 @@ function validateCompetency(req, res) {
     db('User_Validated_Competency').where({competency: competencyId, user: userId}).select('id').orderBy('date', 'desc')
       .first().then(prev => {
       db('User_Validated_Competency').insert({competency: competencyId, user: userId, fileName, file: file64, photo: photo64, comment, prev: prev ? prev.id : null, date: new Date().toISOString()})
-        .then(res.end())
+        .then(res.end('Ok'))
         
       });
   });
@@ -47,14 +47,14 @@ function removeCompetency(req, res) {
   const competencyId = req.body.competencyId;
   const userId = req.user.id;
   db('User_Validated_Competency').where({competency: competencyId, user: userId}).del()
-    .then(res.end());
+    .then(res.end('Ok'));
 }
 
 function acceptValidation(req, res) {
   const validationId = req.body.validationId;
   const verificatorUserId = req.user.id;
   db('User_Verified_Competency').insert({validation: validationId, validator: verificatorUserId})
-    .onConflict(['validation', 'validator']).ignore().then(res.end());
+    .onConflict(['validation', 'validator']).ignore().then(res.end('Ok'));
 }
 
 function commentValidation(req, res) {
@@ -62,7 +62,7 @@ function commentValidation(req, res) {
   const verificatorUserId = req.user.id;
   const comment = req.body.comment;
   db('User_Commented_Validation').insert({validation: validationId, user: verificatorUserId, comment, date: new Date().toISOString()})
-    .then(res.end());
+    .then(res.end('Ok'));
 }
 
 module.exports = {

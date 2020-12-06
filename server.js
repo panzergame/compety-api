@@ -63,7 +63,7 @@ app.all('/api/resource*', [jwtauth.optionalToken]);
 // App Routes
 app.get('/', (req, res) => res.send('hello world'));
 app.post('/api/auth/login', auth.login);
-// app.post('/api/sync/esco', sync.esco);
+app.post('/api/sync/esco', sync.esco);
 app.post('/api/auth/register', auth.register);
 app.post('/api/action/user/competency/validate', action.user.validateCompetency);
 app.post('/api/action/user/competency/remove', action.user.removeCompetency);
@@ -95,10 +95,11 @@ app.get('/api/resource/user/competency', resource.userCompetencies);
 const PORT = 3001;
 
 // App Server Connection
-https.createServer({
+/*https.createServer({
   key: fs.readFileSync("./compety.com-key.pem"),
   cert: fs.readFileSync("./compety.com.pem")
-}, app)
-.listen(process.env.PORT || PORT, () => {
+}, app)*/
+
+app.listen(process.env.PORT || PORT, () => {
   console.log(`app is running on port ${process.env.PORT || PORT}`);
 })

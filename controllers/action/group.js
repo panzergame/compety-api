@@ -23,13 +23,12 @@ function invite(req, res) {
   .onConflict(['user', 'group']).ignore()
   .returning('*').then(
     notification.createNotification(body.userId, 'Invite_Notification', {group: body.groupId})
-      .then(res.end()));
+      .then(res.end('Ok')));
 }
 
 function acceptInvite(req, res) {
   const body = req.body;
-  db('User_In_Group').where({user: req.user.id, group: body.groupId}).update({accepted: true})
-  .returning('*').then(res.end());
+  db('User_In_Group').where({user: req.user.id, group: body.groupId}).update({accepted: true}).then(res.end('Ok'));
 }
 
 module.exports = {

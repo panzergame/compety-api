@@ -21,7 +21,7 @@ function subscribe(req, res) {
 
   userSubscriptions[req.user.id] = subscription;
 
-  res.end();
+  res.end('Ok');
 }
     
 module.exports = {

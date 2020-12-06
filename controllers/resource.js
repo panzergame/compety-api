@@ -14,10 +14,24 @@ function user(req, res) {
 
 function section(req, res) {
   const id = req.query.id;
-  sectionById(id).then(item => {
-      res.json(item);
-    }
-  );
+  sectionById(id).then(section => {
+    let query = db('Competency')
+    .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
+    .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
+    .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation', 'User_Validated_Competency.date as date', 'Competency.*'])
+    .where({section: id});
+    
+    latestValidationJoin(query).then(competencies => {
+      competencies.map(competency => {
+        competency.validated = {verification: competency.verification, validation: competency.validation};
+        delete competency.verification;
+        delete competency.validation;
+      });
+
+      section.competencies = competencies;
+      res.json(section);
+    })
+  });
 }
 
 function latestValidationJoin(query) {
@@ -95,7 +109,7 @@ function competencyValidation(req, res) {
     .leftJoin('User_Verified_Competency', 'User_Verified_Competency.validation', 'User_Validated_Competency.id')
     .leftJoin('User as Verificator', 'Verificator.id', 'User_Verified_Competency.validator')
     .where({'User_Validated_Competency.id': validationId})
-    .select(['User_Validated_Competency.id', 'user', 'competency', 'fileName', 'comment',
+    .select(['User_Validated_Competency.id', 'user', 'competency', 'fileName', 'comment', 'prev',
             'User.firstname', 'User.lastname', 'User.login', 'Competency.title',
             'Verificator.firstname as verificator_firstname', 'Verificator.lastname as verificator_lastname'
             ])
@@ -126,7 +140,7 @@ function competencyValidationFile(req, res) {
         readStream.pipe(res);
       }
       else {
-        res.end();
+        res.end('Ok');
       }
     });
 }
@@ -145,7 +159,7 @@ function competencyValidationPhoto(req, res) {
         readStream.pipe(res);
       }
       else {
-        res.end();
+        res.end('Ok');
       }
     });
 }
