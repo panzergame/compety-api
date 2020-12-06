@@ -5,7 +5,6 @@ const os = require("os");
 const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
-const webpush = require('web-push');
 const knex = require('knex');
 
 // use process.env variables to keep private variables,
@@ -28,8 +27,6 @@ app.use(cors());
 app.set('jwtTokenSecret', 'compety-jwt-secret');
 
 app.use(bodyParser.json());
-
-webpush.setVapidDetails(process.env.WEB_PUSH_CONTACT, process.env.PUBLIC_VAPID_KEY, process.env.PRIVATE_VAPID_KEY);
 
 /**
  * Options are the same as multiparty takes.

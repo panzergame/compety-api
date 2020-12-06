@@ -14,14 +14,15 @@ function user(req, res) {
 
 function section(req, res) {
   const id = req.query.id;
+  const userId = req.user ? req.user.id : null;
   sectionById(id).then(section => {
     let query = db('Competency')
-    .join('User_Validated_Competency', 'Competency.id', 'User_Validated_Competency.competency')
-    .leftJoin('User_Verified_Competency', 'User_Validated_Competency.id', 'User_Verified_Competency.validation')
-    .select(['User_Verified_Competency.id as verification', 'User_Validated_Competency.id as validation', 'User_Validated_Competency.date as date', 'Competency.*'])
+    .leftJoin(latestValidation(userId), 'Competency.id', 'Latest_Validation.competency')
+    .leftJoin('User_Verified_Competency', 'Latest_Validation.id', 'User_Verified_Competency.validation')
+    .select(['User_Verified_Competency.id as verification', 'Latest_Validation.id as validation', 'Latest_Validation.date as date', 'Competency.*'])
     .where({section: id});
     
-    latestValidationJoin(query).then(competencies => {
+    query.then(competencies => {
       competencies.map(competency => {
         competency.validated = {verification: competency.verification, validation: competency.validation};
         delete competency.verification;
@@ -32,6 +33,19 @@ function section(req, res) {
       res.json(section);
     })
   });
+}
+
+function latestValidation(userId) {
+    var query = db('User_Validated_Competency')
+        .select([db.raw('max(id) id'), 'competency', db.raw('max(date) date')])
+        .groupBy('competency').as('nested');
+
+    if (userId) {
+      query = query.where({user: userId});
+    }
+
+    return db.select([db.raw('nested.*')]).from(query)
+      .as('Latest_Validation');
 }
 
 function latestValidationJoin(query) {
